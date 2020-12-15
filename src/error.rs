@@ -1,11 +1,3 @@
-/// Error handling based on the failure crate
-///
-/// Only rocket's Handlers can render error responses w/ a contextual JSON
-/// payload. So request guards should generally return VALIDATION_FAILED,
-/// leaving error handling to the Handler (which in turn must take a Result of
-/// request guards' fields).
-///
-/// HandlerErrors are rocket Responders (render their own error responses).
 use backtrace::Backtrace;
 use std::error::Error;
 use std::fmt;
@@ -36,15 +28,10 @@ pub enum HandlerErrorKind {
     GeneralError(String),
     #[error("Internal error: {:?}", _0)]
     InternalError(String),
-    // Note: Make sure that if display has an argument, the label includes the argument,
-    // otherwise the process macro parser will fail on `derive(Fail)`
-    //#[error("Unexpected rocket error: {:?}", _0)]
-    //RocketError(rocket::Error), // rocket::Error isn't a std Error (so no #[cause])
-    // Application Errors
 }
 
 impl HandlerErrorKind {
-    /// Return a rocket response Status to be rendered for an error
+    /// Return a response Status to be rendered for an error
     pub fn http_status(&self) -> StatusCode {
         match self {
             // HandlerErrorKind::NotFound => Status::NotFound,

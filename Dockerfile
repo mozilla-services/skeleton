@@ -33,7 +33,4 @@ COPY --from=builder /app/version.json /app
 WORKDIR /app
 USER app
 
-# override rocket's dev env defaulting to localhost
-ENV ROCKET_ADDRESS 0.0.0.0
-
 CMD ["/app/bin/${APPNAME}"]

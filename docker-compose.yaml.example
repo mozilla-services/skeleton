@@ -24,7 +24,7 @@ services:
         depends_on:
           - db
         environment:
-          ROCKET_DATABASE_URL: mysql://test:test@db:3306/myproject
+          DATABASE_URL: mysql://test:test@db:3306/myproject
 
 volumes:
     db_data:
