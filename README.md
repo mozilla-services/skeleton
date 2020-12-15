@@ -15,6 +15,10 @@ directory has scripts that can help.
 
 TODO: See new project doc.
 
+FRESHNESS DATE:
+
+Best if used or renewed by JUL 2021
+
 
 ---
 

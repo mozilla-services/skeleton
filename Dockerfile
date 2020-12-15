@@ -19,7 +19,6 @@ RUN \
 
 FROM debian:stretch-slim
 # FROM debian:stretch  # for debugging docker build
-MAINTAINER <services-eng@mozilla.com>
 RUN \
     groupadd --gid 10001 app && \
     useradd --uid 10001 --gid 10001 --home /app --create-home app && \
