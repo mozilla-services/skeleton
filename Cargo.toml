@@ -36,3 +36,4 @@ slog-stdlog = "4.1"
 slog-term = "2.7"
 smallvec = "1.6"  # for RUSTSEC-2021-0003 (via actix-rt 1.1.1, via actix-http 2.2)
 thiserror="1.0"
+woothee = "0.11"
