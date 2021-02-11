@@ -1,7 +1,4 @@
-use backtrace::Backtrace;
-use std::error::Error;
-use std::fmt;
-use std::result;
+use std::{error::Error, fmt, result};
 
 use actix_web::{
     dev::{HttpResponseBuilder, ServiceResponse},
@@ -10,6 +7,7 @@ use actix_web::{
     middleware::errhandlers::ErrorHandlerResponse,
     HttpResponse, Result,
 };
+use backtrace::Backtrace;
 use thiserror::Error;
 
 // pub type Result<T> = result::Result<T, HandlerError>;
@@ -25,9 +23,9 @@ pub struct HandlerError {
 #[derive(Clone, Eq, PartialEq, Debug, Error)]
 pub enum HandlerErrorKind {
     #[error("General error: {:?}", _0)]
-    GeneralError(String),
+    General(String),
     #[error("Internal error: {:?}", _0)]
-    InternalError(String),
+    Internal(String),
 }
 
 impl HandlerErrorKind {
@@ -35,7 +33,7 @@ impl HandlerErrorKind {
     pub fn http_status(&self) -> StatusCode {
         match self {
             // HandlerErrorKind::NotFound => Status::NotFound,
-            HandlerErrorKind::InternalError(_) | HandlerErrorKind::GeneralError(_) => {
+            HandlerErrorKind::Internal(_) | HandlerErrorKind::General(_) => {
                 StatusCode::INTERNAL_SERVER_ERROR
             } // _ => StatusCode::UNAUTHORIZED,
         }
@@ -44,8 +42,8 @@ impl HandlerErrorKind {
     /// Return a unique errno code
     pub fn errno(&self) -> i32 {
         match self {
-            HandlerErrorKind::InternalError(_) => 510,
-            HandlerErrorKind::GeneralError(_) => 500,
+            HandlerErrorKind::Internal(_) => 510,
+            HandlerErrorKind::General(_) => 500,
         }
     }
 
@@ -69,6 +67,10 @@ impl ResponseError for HandlerErrorKind {
 impl HandlerError {
     pub fn kind(&self) -> &HandlerErrorKind {
         &self.kind
+    }
+
+    pub fn internal(msg: &str) -> Self {
+        HandlerErrorKind::Internal(msg.to_owned()).into()
     }
 }
 
@@ -132,5 +134,9 @@ impl ResponseError for HandlerError {
         // So instead we translate our error to a backwards compatible one
         let mut resp = HttpResponse::build(self.status_code());
         resp.json(self.kind().errno() as i32)
+    }
+
+    fn status_code(&self) -> StatusCode {
+        self.kind().http_status()
     }
 }

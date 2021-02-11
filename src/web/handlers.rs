@@ -4,17 +4,14 @@ use std::collections::HashMap;
 use actix_web::{Error, HttpRequest, HttpResponse};
 use serde_json::Value;
 
-use crate::{
-    error::{HandlerError, HandlerErrorKind},
-    web::extractors::{HeartbeatRequest, TestErrorRequest},
-};
+use crate::error::HandlerError;
 
 pub const ONE_KB: f64 = 1024.0;
 
 /** Returns a status message indicating the state of the current server
  *
  */
-pub async fn heartbeat(_hb: HeartbeatRequest) -> Result<HttpResponse, Error> {
+pub async fn heartbeat() -> Result<HttpResponse, Error> {
     let mut checklist = HashMap::new();
     checklist.insert(
         "version".to_owned(),
@@ -54,15 +51,10 @@ pub async fn heartbeat(_hb: HeartbeatRequest) -> Result<HttpResponse, Error> {
 }
 
 // try returning an API error
-pub async fn test_error(
-    _req: HttpRequest,
-    _ter: TestErrorRequest,
-) -> Result<HttpResponse, HandlerError> {
+pub async fn test_error(_req: HttpRequest) -> Result<HttpResponse, HandlerError> {
     // generate an error for sentry.
 
     // HandlerError will call the middleware layer to auto-append the tags.
     error!("Test Error");
-    let err = HandlerError::from(HandlerErrorKind::InternalError("Oh Noes!".to_owned()));
-
-    Err(err)
+    Err(HandlerError::internal("Oh Noes!"))
 }

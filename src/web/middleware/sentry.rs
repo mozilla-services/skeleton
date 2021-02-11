@@ -1,7 +1,7 @@
-use std::task::Context;
 use std::{
     cell::{RefCell, RefMut},
     rc::Rc,
+    task::Context,
 };
 
 use actix_http::Extensions;
@@ -13,8 +13,7 @@ use futures::future::{self, LocalBoxFuture, TryFutureExt};
 use sentry::protocol::Event;
 use std::task::Poll;
 
-use crate::error::HandlerError;
-use crate::tags::Tags;
+use crate::{error::HandlerError, tags::Tags};
 
 pub struct SentryWrapper;
 

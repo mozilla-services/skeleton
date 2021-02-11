@@ -1,9 +1,9 @@
 use std::io;
 
-use crate::error::HandlerResult;
-
-use slog::{self, slog_o, Drain};
+use slog::{slog_o, Drain};
 use slog_mozlog_json::MozLogJson;
+
+use crate::error::HandlerResult;
 
 pub fn init_logging(json: bool) -> HandlerResult<()> {
     let logger = if json {
