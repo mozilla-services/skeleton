@@ -14,6 +14,7 @@ static GIGABYTE: u32 = MEGABYTE * 1_000;
 static PREFIX: &str = "skeleton";
 
 #[derive(Clone, Debug, Deserialize)]
+#[serde(default)]
 pub struct Settings {
     pub debug: bool,
     pub port: u16,
@@ -30,9 +31,9 @@ impl Default for Settings {
         Settings {
             debug: false,
             port: DEFAULT_PORT,
-            host: "127.0.0.1".to_string(),
+            host: "127.0.0.1".to_owned(),
             human_logs: false,
-            statsd_label: PREFIX.to_string(),
+            statsd_label: PREFIX.to_owned(),
             statsd_host: None,
             statsd_port: 8125,
             actix_keep_alive: None,
@@ -44,11 +45,6 @@ impl Settings {
     /// Load the settings from the config file if supplied, then the environment.
     pub fn with_env_and_config_file(filename: &Option<String>) -> Result<Self, ConfigError> {
         let mut s = Config::default();
-        // Set our defaults, this can be fixed up drastically later after:
-        // https://github.com/mehcode/config-rs/issues/60
-        s.set_default("debug", false)?;
-        s.set_default("port", i64::from(DEFAULT_PORT))?;
-        s.set_default("host", "127.0.0.1")?;
 
         // Merge the config file if supplied
         if let Some(config_filename) = filename {

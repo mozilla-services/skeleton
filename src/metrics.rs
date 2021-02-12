@@ -1,15 +1,11 @@
-use std::net::UdpSocket;
-use std::time::Instant;
+use std::{net::UdpSocket, time::Instant};
 
 use actix_web::{error::ErrorInternalServerError, web::Data, Error, HttpRequest};
 use cadence::{
     BufferedUdpMetricSink, Counted, Metric, NopMetricSink, QueuingMetricSink, StatsdClient, Timed,
 };
 
-use crate::error::{HandlerError, HandlerErrorKind};
-use crate::server::ServerState;
-use crate::settings::Settings;
-use crate::tags::Tags;
+use crate::{error::HandlerError, server::ServerState, settings::Settings, tags::Tags};
 
 #[derive(Debug, Clone)]
 pub struct MetricTimer {
@@ -190,17 +186,15 @@ pub fn metrics_from_req(req: &HttpRequest) -> Result<Box<StatsdClient>, Error> {
 /// Create a cadence StatsdClient from the given options
 pub fn metrics_from_opts(opts: &Settings) -> Result<StatsdClient, HandlerError> {
     let builder = if let Some(statsd_host) = opts.statsd_host.as_ref() {
-        let socket = UdpSocket::bind("0.0.0.0:0").map_err(|e| {
-            HandlerErrorKind::InternalError(format!("Could not bind UDP port {:?}", e))
-        })?;
-        socket.set_nonblocking(true).map_err(|e| {
-            HandlerErrorKind::InternalError(format!("Could not init UDP port {:?}", e))
-        })?;
+        let socket = UdpSocket::bind("0.0.0.0:0")
+            .map_err(|e| HandlerError::internal(&format!("Could not bind UDP port {:?}", e)))?;
+        socket
+            .set_nonblocking(true)
+            .map_err(|e| HandlerError::internal(&format!("Could not init UDP port {:?}", e)))?;
 
         let host = (statsd_host.as_str(), opts.statsd_port);
-        let udp_sink = BufferedUdpMetricSink::from(host, socket).map_err(|e| {
-            HandlerErrorKind::InternalError(format!("Could not generate UDP sink {:?}", e))
-        })?;
+        let udp_sink = BufferedUdpMetricSink::from(host, socket)
+            .map_err(|e| HandlerError::internal(&format!("Could not generate UDP sink {:?}", e)))?;
         let sink = QueuingMetricSink::from(udp_sink);
         StatsdClient::builder(opts.statsd_label.as_ref(), sink)
     } else {

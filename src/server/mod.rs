@@ -7,39 +7,27 @@ use actix_web::{
 };
 use cadence::StatsdClient;
 
-use crate::error::HandlerError;
-use crate::metrics;
-use crate::settings::Settings;
-use crate::web::{handlers, middleware};
-
-pub const BSO_ID_REGEX: &str = r"[ -~]{1,64}";
-pub const COLLECTION_ID_REGEX: &str = r"[a-zA-Z0-9._-]{1,32}";
-const MYSQL_UID_REGEX: &str = r"[0-9]{1,10}";
-const SYNC_VERSION_PATH: &str = "1.5";
+use crate::{
+    error::HandlerError,
+    metrics,
+    settings::Settings,
+    web::{handlers, middleware},
+};
 
 /// This is the global HTTP state object that will be made available to all
 /// HTTP API calls.
+#[derive(Clone, Debug)]
 pub struct ServerState {
     /// Metric reporting
     pub metrics: Box<StatsdClient>,
     pub port: u16,
 }
 
-pub fn cfg_path(path: &str) -> String {
-    let path = path
-        .replace(
-            "{collection}",
-            &format!("{{collection:{}}}", COLLECTION_ID_REGEX),
-        )
-        .replace("{bso}", &format!("{{bso:{}}}", BSO_ID_REGEX));
-    format!("/{}/{{uid:{}}}{}", SYNC_VERSION_PATH, MYSQL_UID_REGEX, path)
-}
-
 pub struct Server;
 
 #[macro_export]
 macro_rules! build_app {
-    ($state: expr, $limits: expr) => {
+    ($state: expr) => {
         App::new()
             .data($state)
             // Middleware is applied LIFO
@@ -80,24 +68,16 @@ macro_rules! build_app {
 
 impl Server {
     pub async fn with_settings(settings: Settings) -> Result<dev::Server, HandlerError> {
-        let metrics = metrics::metrics_from_opts(&settings)?;
-        let host = settings.host.clone();
-        let port = settings.port;
-
-        let mut server = HttpServer::new(move || {
-            // Setup the server state
-            let state = ServerState {
-                metrics: Box::new(metrics.clone()),
-                port,
-            };
-
-            build_app!(state, limits)
-        });
+        let state = ServerState {
+            metrics: Box::new(metrics::metrics_from_opts(&settings)?),
+            port: settings.port,
+        };
+        let mut server = HttpServer::new(move || build_app!(state.clone()));
         if let Some(keep_alive) = settings.actix_keep_alive {
             server = server.keep_alive(keep_alive as usize);
         }
         let server = server
-            .bind(format!("{}:{}", host, port))
+            .bind((settings.host, settings.port))
             .expect("Could not get Server in Server::with_settings")
             .run();
         Ok(server)
