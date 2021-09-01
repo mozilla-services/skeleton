@@ -1,3 +1,12 @@
+---
+name: New Release Template
+about: A checklist for new releases
+title `chore: tag {version}`
+labels: ''
+assignees: ''
+
+---
+
  - [ ] Switch to the main branch.
  - [ ] `git pull` to ensure the local copy is completely up-to-date.
  - [ ] `git diff origin/main` to ensure there are no local staged or uncommitted changes.
@@ -13,7 +22,7 @@
 - [ ]`clog --setversion {version}`, verify changes were properly accounted for in `CHANGELOG.md`.
 - [ ]`git add CHANGELOG.md {version source file}` to add the two changes to the new release commit.
 - [ ]`git commit -m "chore: tag {version}"` to commit the new version and record of changes.
-- [ ]`git tag -s -m "chore: tag {version}" {version}` to create a signed tag of the current HEAD commit for release.
+- [ ]`git tag -s -m "chore: tag {version}" {version}` to create a signed tag of the current HEAD commit for release.vi
 - [ ]`git push --set-upstream origin release/{major}.{minor}` to push the commits to a new origin release branch.
 - [ ]`git push --tags origin release/{major}.{minor}` to push the tags to the release branch.
 - [ ]Submit a pull request on github to merge the release branch to main.
