@@ -11,7 +11,6 @@ use crate::{error::HandlerErrorKind, server::ServerState};
 pub struct ExampleRequest;
 
 impl FromRequest for ExampleRequest {
-    type Config = ();
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self, Self::Error>>;
 

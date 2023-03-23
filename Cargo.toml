@@ -5,27 +5,37 @@ authors = [
     "jrconlin <jr+git@mozilla.com>",
     # "Your Name Here <email address here>"
     ]
-edition = "2018"
+edition = "2021"
 
+# if using workspaces, you're strongly encouraged to use the [workspace.*]
+# sections in order to reduce duplication in sub crates.
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-actix-http = "2.2"
-actix-web = "3"
-actix-rt = "2"
-actix-cors = "0.5"
+# When specifying dependencies, it's best to use major.minor to balance the
+# need for constant updates with using the most recent library.
+# If you need to use an older library, say for cross dependency reasons,
+# include a comment after the library indicating the reason or dependency.
+# e.g.
+# some-lib = "0.1"  # 0.02+ requires foo crate 0.3+
+actix-http = "3.3"
+actix-web = "4.2"
+actix-rt = "2.8"
+actix-cors = "0.6"
 backtrace = "0.3"
 # for metrics
-cadence = "0.26"
+cadence = "0.29"
 docopt = "1.1"
-config = "0.11"
-env_logger = "0.9"
+config = "0.13"
+env_logger = "0.10"
 futures = "0.3"
+futures-util = "0.3"
 hostname = "0.3"
 lazy_static = "1.4"
 regex = "1.4"
 serde = "1.0"
-sentry = "0.23"
+sentry = "0.30"
+sentry-actix = "0.30"
 serde_json = "1.0"
 slog = { version = "2.7", features = ["max_level_info", "release_max_level_info", "dynamic-keys"] }
 slog-async = "2.6"
@@ -34,6 +44,5 @@ slog-mozlog-json = "0.1"
 slog-scope = "4.4"
 slog-stdlog = "4.1"
 slog-term = "2.7"
-smallvec = "1.6"  # for RUSTSEC-2021-0003 (via actix-rt 1.1.1, via actix-http 2.2)
 thiserror = "1.0"
 woothee = "0.13"
