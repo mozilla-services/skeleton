@@ -16,19 +16,8 @@ use std::task::Poll;
 
 use crate::{error::HandlerError, tags::Tags};
 
+#[derive(Default)]
 pub struct SentryWrapper;
-
-impl SentryWrapper {
-    pub fn new() -> Self {
-        SentryWrapper::default()
-    }
-}
-
-impl Default for SentryWrapper {
-    fn default() -> Self {
-        Self
-    }
-}
 
 impl<S, B> Transform<S, ServiceRequest> for SentryWrapper
 where

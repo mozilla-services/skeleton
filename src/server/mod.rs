@@ -5,8 +5,8 @@ use actix_cors::Cors;
 use actix_web::{dev, http::StatusCode, middleware::ErrorHandlers, web, App, HttpServer};
 use cadence::StatsdClient;
 
-use crate::{error::HandlerError, metrics, settings::Settings};
 use crate::web::middleware::sentry::SentryWrapper;
+use crate::{error::HandlerError, metrics, settings::Settings};
 
 mod dockerflow;
 
