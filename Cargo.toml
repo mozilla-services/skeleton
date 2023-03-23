@@ -34,7 +34,7 @@ hostname = "0.3"
 lazy_static = "1.4"
 regex = "1.4"
 serde = "1.0"
-sentry = "0.30"
+sentry = { version="0.30", features = ["backtrace", "panic", "contexts", "slog", "test"] }
 sentry-actix = "0.30"
 serde_json = "1.0"
 slog = { version = "2.7", features = ["max_level_info", "release_max_level_info", "dynamic-keys"] }
