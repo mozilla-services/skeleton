@@ -5,6 +5,7 @@ use actix_cors::Cors;
 use actix_web::{dev, http::StatusCode, middleware::ErrorHandlers, web, App, HttpServer};
 use cadence::StatsdClient;
 
+use crate::server::dockerflow::configure;
 use crate::web::middleware::sentry::SentryWrapper;
 use crate::{error::HandlerError, metrics, settings::Settings};
 
@@ -41,17 +42,7 @@ macro_rules! build_app {
             // For now, let's be permissive and use NGINX (the wrapping server)
             // for finer grained specification.
             .wrap(Cors::permissive())
-            // Dockerflow
-            // Remember to update .::web::middleware::DOCKER_FLOW_ENDPOINTS
-            // when applying changes to endpoint names.
-            .service(web::resource("/__heartbeat__").route(web::get().to(dockerflow::health_route)))
-            .service(
-                web::resource("/__lbheartbeat__")
-                    .route(web::get().to(dockerflow::lb_heartbeat_route)),
-            )
-            .service(web::resource("/__status__").route(web::get().to(dockerflow::status_route)))
-            .service(web::resource("/__version__").route(web::get().to(dockerflow::version_route)))
-            .service(web::resource("/__error__").route(web::get().to(dockerflow::log_check)))
+            .service(web::scope("").configure(configure))
     };
 }
 
