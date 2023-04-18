@@ -3,4 +3,5 @@ ignore = [
     # A CVE may not be able to be addressed immediately. If so,
     # list them here, and file a P1 ticket to address them once the
     # updated crate is available.
+    "RUSTSEC-2020-0071", # Bound by chrono 0.4
 ]
