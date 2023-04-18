@@ -3,7 +3,7 @@ FROM rust:1.68-bullseye as builder
 ADD . /app
 WORKDIR /app
 # Change this to be your application's name
-ARG APPNAME=my_app
+ARG APPNAME=skeleton
 # Make sure that this matches in .travis.yml
 RUN \
     apt-get -qq update && \
