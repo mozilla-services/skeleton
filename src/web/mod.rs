@@ -6,7 +6,6 @@ pub mod middleware;
 pub const DOCKER_FLOW_ENDPOINTS: [&str; 5] = [
     "/__heartbeat__",
     "/__lbheartbeat__",
-    "/__status__",
     "/__version__",
     "/__error__",
 ];
