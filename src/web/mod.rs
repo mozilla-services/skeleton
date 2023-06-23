@@ -3,7 +3,7 @@ pub mod extractors;
 pub mod middleware;
 
 // Known DockerFlow commands for Ops callbacks
-pub const DOCKER_FLOW_ENDPOINTS: [&str; 5] = [
+pub const DOCKER_FLOW_ENDPOINTS: [&str; 4] = [
     "/__heartbeat__",
     "/__lbheartbeat__",
     "/__version__",
