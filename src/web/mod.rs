@@ -1,6 +1,5 @@
 //! Web authentication, handlers, and middleware
 pub mod extractors;
-pub mod handlers;
 pub mod middleware;
 
 // Known DockerFlow commands for Ops callbacks

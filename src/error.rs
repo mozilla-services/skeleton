@@ -1,11 +1,8 @@
 use std::{error::Error, fmt, result};
 
 use actix_web::{
-    dev::{HttpResponseBuilder, ServiceResponse},
-    error::ResponseError,
-    http::StatusCode,
-    middleware::errhandlers::ErrorHandlerResponse,
-    HttpResponse, Result,
+    dev::ServiceResponse, error::ResponseError, http::StatusCode, middleware::ErrorHandlerResponse,
+    HttpResponse, HttpResponseBuilder, Result,
 };
 use backtrace::Backtrace;
 use thiserror::Error;
@@ -83,11 +80,10 @@ impl Error for HandlerError {
 impl HandlerError {
     pub fn render_404<B>(res: ServiceResponse<B>) -> Result<ErrorHandlerResponse<B>> {
         // Replace the outbound error message with our own.
-        let resp = HttpResponseBuilder::new(StatusCode::NOT_FOUND).json(0);
-        Ok(ErrorHandlerResponse::Response(ServiceResponse::new(
-            res.request().clone(),
-            resp.into_body(),
-        )))
+        let resp = HttpResponseBuilder::new(StatusCode::NOT_FOUND).finish();
+        Ok(ErrorHandlerResponse::Response(
+            res.into_response(resp).map_into_right_body(),
+        ))
     }
 }
 
@@ -133,7 +129,7 @@ impl ResponseError for HandlerError {
         //
         // So instead we translate our error to a backwards compatible one
         let mut resp = HttpResponse::build(self.status_code());
-        resp.json(self.kind().errno() as i32)
+        resp.json(self.kind().errno())
     }
 
     fn status_code(&self) -> StatusCode {

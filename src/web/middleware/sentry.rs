@@ -9,43 +9,31 @@ use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpMessage,
 };
-use futures::future::{self, LocalBoxFuture, TryFutureExt};
+use futures::{future::LocalBoxFuture, FutureExt};
+use futures_util::future::{ok, Ready};
 use sentry::protocol::Event;
 use std::task::Poll;
 
 use crate::{error::HandlerError, tags::Tags};
 
+#[derive(Default)]
 pub struct SentryWrapper;
 
-impl SentryWrapper {
-    pub fn new() -> Self {
-        SentryWrapper::default()
-    }
-}
-
-impl Default for SentryWrapper {
-    fn default() -> Self {
-        Self
-    }
-}
-
-impl<S, B> Transform<S> for SentryWrapper
+impl<S, B> Transform<S, ServiceRequest> for SentryWrapper
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
 {
-    type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Error = Error;
-    type InitError = ();
     type Transform = SentryWrapperMiddleware<S>;
-    type Future = LocalBoxFuture<'static, Result<Self::Transform, Self::InitError>>;
+    type InitError = ();
+    type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        Box::pin(future::ok(SentryWrapperMiddleware {
+        ok(SentryWrapperMiddleware {
             service: Rc::new(RefCell::new(service)),
-        }))
+        })
     }
 }
 
@@ -68,8 +56,7 @@ pub fn queue_report(mut ext: RefMut<'_, Extensions>, err: &Error) {
         if let Some(events) = ext.get_mut::<Vec<Event<'static>>>() {
             events.push(event);
         } else {
-            let mut events: Vec<Event<'static>> = Vec::new();
-            events.push(event);
+            let events: Vec<Event<'static>> = vec![event];
             ext.insert(events);
         }
     }
@@ -83,68 +70,49 @@ pub fn report(tags: &Tags, mut event: Event<'static>) {
     sentry::capture_event(event);
 }
 
-impl<S, B> Service for SentryWrapperMiddleware<S>
+impl<S, B> Service<ServiceRequest> for SentryWrapperMiddleware<S>
 where
-    S: Service<Request = ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
-    B: 'static,
 {
-    type Request = ServiceRequest;
     type Response = ServiceResponse<B>;
     type Error = Error;
     type Future = LocalBoxFuture<'static, Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_ready(&self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.service.poll_ready(cx)
     }
 
-    fn call(&mut self, sreq: ServiceRequest) -> Self::Future {
+    fn call(&self, sreq: ServiceRequest) -> Self::Future {
         let mut tags = Tags::from_request_head(sreq.head());
+        if let Some(rtags) = sreq.request().extensions().get::<Tags>() {
+            trace!("Sentry: found tags in request: {:?}", &rtags.tags);
+            for (k, v) in rtags.tags.clone() {
+                tags.tags.insert(k, v);
+            }
+        };
+
         sreq.extensions_mut().insert(tags.clone());
 
-        Box::pin(self.service.call(sreq).and_then(move |mut sresp| {
-            // handed an actix_error::error::Error;
-            // Fetch out the tags (in case any have been added.) NOTE: request extensions
-            // are NOT automatically passed to responses. You need to check both.
-            if let Some(t) = sresp.request().extensions().get::<Tags>() {
-                trace!("Sentry: found tags in request: {:?}", &t.tags);
-                for (k, v) in t.tags.clone() {
-                    tags.tags.insert(k, v);
-                }
-            };
-            if let Some(t) = sresp.response().extensions().get::<Tags>() {
-                trace!("Sentry: found tags in response: {:?}", &t.tags);
-                for (k, v) in t.tags.clone() {
-                    tags.tags.insert(k, v);
-                }
-            };
-            match sresp.response().error() {
-                None => {
-                    // Middleware errors are eaten by current versions of Actix. Errors are now added
-                    // to the extensions. Need to check both for any errors and report them.
-                    if let Some(events) = sresp
+        let fut = self.service.call(sreq);
+
+        async move {
+            let resp: Self::Response = match fut.await {
+                Ok(resp) => {
+                    if let Some(events) = resp
                         .request()
                         .extensions_mut()
                         .remove::<Vec<Event<'static>>>()
                     {
                         for event in events {
-                            trace!("Sentry: found an error stored in request: {:?}", &event);
+                            trace!("Sentry: found error stored in request: {:?}", &event);
                             report(&tags, event);
                         }
-                    }
-                    if let Some(events) = sresp
-                        .response_mut()
-                        .extensions_mut()
-                        .remove::<Vec<Event<'static>>>()
-                    {
-                        for event in events {
-                            trace!("Sentry: Found an error stored in response: {:?}", &event);
-                            report(&tags, event);
-                        }
-                    }
+                    };
+                    resp
                 }
-                Some(e) => {
-                    if let Some(herr) = e.as_error::<HandlerError>() {
+                Err(err) => {
+                    if let Some(herr) = err.as_error::<HandlerError>() {
                         /*
                         // Call any special processing for a given error (e.g. record metrics)
                         if let Some(state) = sresp.request().app_data::<Data<ServerState>>() {
@@ -159,10 +127,13 @@ where
                         }
                         */
                         report(&tags, sentry::event_from_error(herr));
-                    }
+                    };
+                    return Err(err);
                 }
-            }
-            future::ok(sresp)
-        }))
+            };
+
+            Ok(resp)
+        }
+        .boxed_local()
     }
 }

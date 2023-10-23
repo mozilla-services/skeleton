@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use actix_web::{
     dev::{Payload, RequestHead},
     http::header::USER_AGENT,
-    Error, FromRequest, HttpRequest,
+    Error, FromRequest, HttpMessage, HttpRequest,
 };
 use futures::future;
 use futures::future::Ready;
@@ -28,7 +28,7 @@ const VALID_UA_OS: &[&str] = &["Firefox OS", "Linux", "Mac OSX"];
 
 pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str, &str) {
     let parser = Parser::new();
-    let wresult = parser.parse(&agent).unwrap_or_else(|| WootheeResult {
+    let wresult = parser.parse(agent).unwrap_or_else(|| WootheeResult {
         name: "",
         category: "",
         os: "",
@@ -54,19 +54,10 @@ pub fn parse_user_agent(agent: &str) -> (WootheeResult<'_>, &str, &str) {
     (wresult, metrics_os, metrics_browser)
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct Tags {
     pub tags: HashMap<String, String>,
     pub extra: HashMap<String, String>,
-}
-
-impl Default for Tags {
-    fn default() -> Tags {
-        Tags {
-            tags: HashMap::new(),
-            extra: HashMap::new(),
-        }
-    }
 }
 
 impl Serialize for Tags {
@@ -112,7 +103,7 @@ impl Tags {
                 insert_if_not_empty("ua.os.family", metrics_os, &mut tags);
                 insert_if_not_empty("ua.browser.family", metrics_browser, &mut tags);
                 insert_if_not_empty("ua.name", ua_result.name, &mut tags);
-                insert_if_not_empty("ua.os.ver", &ua_result.os_version.to_owned(), &mut tags);
+                insert_if_not_empty("ua.os.ver", &ua_result.os_version.clone(), &mut tags);
                 insert_if_not_empty("ua.browser.ver", ua_result.version, &mut tags);
                 extra.insert("ua".to_owned(), uas.to_string());
             }
@@ -163,7 +154,6 @@ impl Tags {
 }
 
 impl FromRequest for Tags {
-    type Config = ();
     type Error = Error;
     type Future = Ready<Result<Self, Self::Error>>;
 
@@ -180,11 +170,11 @@ impl FromRequest for Tags {
     }
 }
 
-impl Into<BTreeMap<String, String>> for Tags {
-    fn into(self) -> BTreeMap<String, String> {
+impl From<Tags> for BTreeMap<String, String> {
+    fn from(tags: Tags) -> BTreeMap<String, String> {
         let mut result = BTreeMap::new();
 
-        for (k, v) in self.tags {
+        for (k, v) in tags.tags {
             result.insert(k.clone(), v.clone());
         }
 
@@ -195,7 +185,7 @@ impl Into<BTreeMap<String, String>> for Tags {
 impl KV for Tags {
     fn serialize(&self, _rec: &Record<'_>, serializer: &mut dyn slog::Serializer) -> slog::Result {
         for (key, val) in &self.tags {
-            serializer.emit_str(Key::from(key.clone()), &val)?;
+            serializer.emit_str(Key::from(key.clone()), val)?;
         }
         Ok(())
     }

@@ -1,3 +1,6 @@
+#![warn(rust_2018_idioms)]
+#![forbid(unsafe_code)]
+
 use std::error::Error;
 
 #[macro_use]

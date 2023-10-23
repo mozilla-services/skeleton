@@ -44,11 +44,11 @@ impl Default for Settings {
 impl Settings {
     /// Load the settings from the config file if supplied, then the environment.
     pub fn with_env_and_config_file(filename: &Option<String>) -> Result<Self, ConfigError> {
-        let mut s = Config::default();
+        let mut config = Config::builder();
 
         // Merge the config file if supplied
         if let Some(config_filename) = filename {
-            s.merge(File::with_name(config_filename))?;
+            config = config.add_source(File::with_name(config_filename));
         }
 
         // Merge the environment overrides
@@ -57,32 +57,29 @@ impl Settings {
         // Environment ever change their policy about case insensitivity.
         // This will accept environment variables specified as
         // `SYNC_FOO__BAR_VALUE="gorp"` as `foo.bar_value = "gorp"`
-        s.merge(Environment::with_prefix(&PREFIX.to_uppercase()).separator("__"))?;
+        config =
+            config.add_source(Environment::with_prefix(&PREFIX.to_uppercase()).separator("__"));
 
-        Ok(match s.try_into::<Self>() {
-            Ok(s) => {
-                // Adjust the max values if required.
-                s
-            }
-            Err(e) => match e {
-                // Configuration errors are not very sysop friendly, Try to make them
-                // a bit more 3AM useful.
-                ConfigError::Message(v) => {
-                    println!("Bad configuration: {:?}", &v);
+        let built = config.build()?;
+
+        built
+            .try_deserialize::<Self>()
+            .map_err(|error| match error {
+                ConfigError::Message(error_msg) => {
+                    println!("Bad configuration: {:?}", &error_msg);
                     println!("Please set in config file or use environment variable.");
                     println!(
                         "For example to set `database_url` use env var `{}_DATABASE_URL`\n",
                         PREFIX.to_uppercase()
                     );
-                    error!("Configuration error: Value undefined {:?}", &v);
-                    return Err(ConfigError::NotFound(v));
+                    error!("Configuration error: Value undefined {:?}", &error_msg);
+                    ConfigError::NotFound(error_msg)
                 }
                 _ => {
-                    error!("Configuration error: Other: {:?}", &e);
-                    return Err(e);
+                    error!("Configuration error: Other: {:?}", &error);
+                    error
                 }
-            },
-        })
+            })
     }
 
     /// A simple banner for display of certain settings at startup

@@ -1,8 +1,9 @@
-use std::{net::UdpSocket, time::Instant};
+use std::{net::UdpSocket, sync::Arc, time::Instant};
 
-use actix_web::{error::ErrorInternalServerError, web::Data, Error, HttpRequest};
+use actix_web::{web::Data, HttpMessage, HttpRequest};
 use cadence::{
-    BufferedUdpMetricSink, Counted, Metric, NopMetricSink, QueuingMetricSink, StatsdClient, Timed,
+    BufferedUdpMetricSink, Counted, CountedExt, Metric, NopMetricSink, QueuingMetricSink,
+    StatsdClient, Timed,
 };
 
 use crate::{error::HandlerError, server::ServerState, settings::Settings, tags::Tags};
@@ -16,7 +17,7 @@ pub struct MetricTimer {
 
 #[derive(Debug, Clone)]
 pub struct Metrics {
-    client: Option<StatsdClient>,
+    client: Option<Arc<StatsdClient>>,
     tags: Option<Tags>,
     timer: Option<MetricTimer>,
 }
@@ -34,7 +35,7 @@ impl Drop for Metrics {
                 let tags = timer.tags.tags.clone();
                 let keys = tags.keys();
                 for tag in keys {
-                    tagged = tagged.with_tag(tag, &tags.get(tag).unwrap())
+                    tagged = tagged.with_tag(tag, tags.get(tag).unwrap())
                 }
                 match tagged.try_send() {
                     Err(e) => {
@@ -56,33 +57,27 @@ impl From<&HttpRequest> for Metrics {
         let def_tags = Tags::from_request_head(req.head());
         let tags = exts.get::<Tags>().unwrap_or(&def_tags);
         Metrics {
-            client: match req.app_data::<Data<ServerState>>() {
-                Some(v) => Some(*v.metrics.clone()),
-                None => {
-                    warn!("⚠️ metric error: No App State");
-                    None
-                }
-            },
+            client: Some(metrics_from_req(req)),
             tags: Some(tags.clone()),
             timer: None,
         }
     }
 }
 
-impl From<&StatsdClient> for Metrics {
-    fn from(client: &StatsdClient) -> Self {
+impl From<StatsdClient> for Metrics {
+    fn from(client: StatsdClient) -> Self {
         Metrics {
-            client: Some(client.clone()),
+            client: Some(Arc::new(client)),
             tags: None,
             timer: None,
         }
     }
 }
 
-impl From<&ServerState> for Metrics {
-    fn from(state: &ServerState) -> Self {
+impl From<&actix_web::web::Data<ServerState>> for Metrics {
+    fn from(state: &actix_web::web::Data<ServerState>) -> Self {
         Metrics {
-            client: Some(*state.metrics.clone()),
+            client: Some(state.metrics.clone()),
             tags: None,
             timer: None,
         }
@@ -96,7 +91,7 @@ impl Metrics {
 
     pub fn noop() -> Self {
         Self {
-            client: Some(Self::sink()),
+            client: Some(Arc::new(Self::sink())),
             timer: None,
             tags: None,
         }
@@ -130,7 +125,7 @@ impl Metrics {
             }
             for key in mtags.tags.keys().clone() {
                 if let Some(val) = mtags.tags.get(key) {
-                    tagged = tagged.with_tag(&key, val.as_ref());
+                    tagged = tagged.with_tag(key, val.as_ref());
                 }
             }
             // Include any "hard coded" tags.
@@ -158,7 +153,7 @@ impl Metrics {
             }
             for key in mtags.tags.keys().clone() {
                 if let Some(val) = mtags.tags.get(key) {
-                    tagged = tagged.with_tag(&key, val.as_ref());
+                    tagged = tagged.with_tag(key, val.as_ref());
                 }
             }
             // Include any "hard coded" tags.
@@ -174,13 +169,11 @@ impl Metrics {
     }
 }
 
-pub fn metrics_from_req(req: &HttpRequest) -> Result<Box<StatsdClient>, Error> {
-    Ok(req
-        .app_data::<Data<ServerState>>()
-        .ok_or_else(|| ErrorInternalServerError("Could not get state"))
+pub fn metrics_from_req(req: &HttpRequest) -> Arc<StatsdClient> {
+    req.app_data::<Data<ServerState>>()
         .expect("Could not get state in metrics_from_req")
         .metrics
-        .clone())
+        .clone()
 }
 
 /// Create a cadence StatsdClient from the given options
