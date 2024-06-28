@@ -91,7 +91,7 @@ jobs:
             export PATH=$PATH:$HOME/.cargo/bin
             echo 'export PATH=$PATH:$HOME/.cargo/bin' >> $BASH_ENV
             rustc --version
-            cargo build --features=emulator
+            cargo build
       - run:
           name: Check formatting
           command: |
