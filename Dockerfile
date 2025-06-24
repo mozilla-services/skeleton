@@ -1,5 +1,6 @@
 # Docker 17.05 or higher required for multi-stage builds
-FROM rust:1.68-bullseye as builder
+# RUST_VER
+FROM rust:1.87-bookworm as builder
 ADD . /app
 WORKDIR /app
 # Change this to be your application's name
@@ -16,7 +17,7 @@ RUN \
     cp /app/target/release/${APPNAME} /app/bin
 
 
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 # FROM debian:stretch  # for debugging docker build
 RUN \
     groupadd --gid 10001 app && \
