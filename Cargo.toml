@@ -5,7 +5,7 @@ authors = [
     "jrconlin <jr+git@mozilla.com>",
     # "Your Name Here <email address here>"
 ]
-edition = "2021"
+edition = "2024"
 
 # if using workspaces, you're strongly encouraged to use the [workspace.*]
 # sections in order to reduce duplication in sub crates.
@@ -18,30 +18,30 @@ edition = "2021"
 # include a comment after the library indicating the reason or dependency.
 # e.g.
 # some-lib = "0.1"  # 0.02+ requires foo crate 0.3+
-actix-http = "3.11"
-actix-web = "4.11"
-actix-rt = "2.8"
+actix-http = "3.12"
+actix-web = "4.13"
+actix-rt = "2.11"
 actix-cors = "0.7"
 backtrace = "0.3"
 # for metrics
-cadence = "1.6"
+cadence = "1.7"
 docopt = "1.1"
 config = "0.15"
 env_logger = "0.11"
 futures = "0.3"
 futures-util = "0.3"
-hostname = "0.3"
+hostname = "0.4"
 lazy_static = "1.4"
-regex = "1.11"
+regex = "1.12"
 serde = "1.0"
-sentry = { version = "0.41", features = [
+sentry = { version = "0.47", features = [
     "backtrace",
     "panic",
     "contexts",
     "slog",
     "test",
 ] }
-sentry-actix = "0.41"
+sentry-actix = "0.47"
 serde_json = "1.0"
 slog = { version = "2.7", features = [
     "max_level_info",

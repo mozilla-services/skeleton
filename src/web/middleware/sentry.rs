@@ -6,11 +6,11 @@ use std::{
 
 use actix_http::Extensions;
 use actix_web::{
-    dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpMessage,
+    dev::{Service, ServiceRequest, ServiceResponse, Transform},
 };
-use futures::{future::LocalBoxFuture, FutureExt};
-use futures_util::future::{ok, Ready};
+use futures::{FutureExt, future::LocalBoxFuture};
+use futures_util::future::{Ready, ok};
 use sentry::protocol::Event;
 use std::task::Poll;
 

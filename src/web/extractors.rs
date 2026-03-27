@@ -2,7 +2,7 @@
 //!
 //! Handles ensuring the header's, body, and query parameters are correct, extraction to
 //! relevant types, and failing correctly with the appropriate errors if issues arise.
-use actix_web::{dev::Payload, web::Data, Error, FromRequest, HttpRequest};
+use actix_web::{Error, FromRequest, HttpRequest, dev::Payload, web::Data};
 use futures::future::{FutureExt, LocalBoxFuture};
 
 use crate::{error::HandlerErrorKind, server::ServerState};

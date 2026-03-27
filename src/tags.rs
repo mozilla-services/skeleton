@@ -1,18 +1,18 @@
 use std::collections::{BTreeMap, HashMap};
 
 use actix_web::{
+    Error, FromRequest, HttpMessage, HttpRequest,
     dev::{Payload, RequestHead},
     http::header::USER_AGENT,
-    Error, FromRequest, HttpMessage, HttpRequest,
 };
 use futures::future;
 use futures::future::Ready;
 use serde::{
-    ser::{SerializeMap, Serializer},
     Serialize,
+    ser::{SerializeMap, Serializer},
 };
 use serde_json::value::Value;
-use slog::{Key, Record, KV};
+use slog::{KV, Key, Record};
 use woothee::parser::{Parser, WootheeResult};
 
 // List of valid user-agent attributes to keep, anything not in this
@@ -96,17 +96,17 @@ impl Tags {
         // tags are optional and wrapped by an Option<> type.
         let mut tags = HashMap::new();
         let mut extra = HashMap::new();
-        if let Some(ua) = req_head.headers().get(USER_AGENT) {
-            if let Ok(uas) = ua.to_str() {
-                // if you wanted to parse out the user agent using some out-of-scope user agent parser like woothee
-                let (ua_result, metrics_os, metrics_browser) = parse_user_agent(uas);
-                insert_if_not_empty("ua.os.family", metrics_os, &mut tags);
-                insert_if_not_empty("ua.browser.family", metrics_browser, &mut tags);
-                insert_if_not_empty("ua.name", ua_result.name, &mut tags);
-                insert_if_not_empty("ua.os.ver", &ua_result.os_version.clone(), &mut tags);
-                insert_if_not_empty("ua.browser.ver", ua_result.version, &mut tags);
-                extra.insert("ua".to_owned(), uas.to_string());
-            }
+        if let Some(ua) = req_head.headers().get(USER_AGENT)
+            && let Ok(uas) = ua.to_str()
+        {
+            // if you wanted to parse out the user agent using some out-of-scope user agent parser like woothee
+            let (ua_result, metrics_os, metrics_browser) = parse_user_agent(uas);
+            insert_if_not_empty("ua.os.family", metrics_os, &mut tags);
+            insert_if_not_empty("ua.browser.family", metrics_browser, &mut tags);
+            insert_if_not_empty("ua.name", ua_result.name, &mut tags);
+            insert_if_not_empty("ua.os.ver", &ua_result.os_version.clone(), &mut tags);
+            insert_if_not_empty("ua.browser.ver", ua_result.version, &mut tags);
+            extra.insert("ua".to_owned(), uas.to_string());
         }
         tags.insert("uri.method".to_owned(), req_head.method.to_string());
         // `uri.path` causes too much cardinality for influx but keep it in

@@ -1,9 +1,9 @@
 //! Health and Dockerflow routes
 use std::thread;
 
+use actix_web::HttpResponse;
 use actix_web::http::StatusCode;
 use actix_web::web::{self, Data, Json};
-use actix_web::HttpResponse;
 use serde_json::json;
 
 use crate::settings::Settings;
