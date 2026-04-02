@@ -1,6 +1,6 @@
 use std::{net::UdpSocket, sync::Arc, time::Instant};
 
-use actix_web::{web::Data, HttpMessage, HttpRequest};
+use actix_web::{HttpMessage, HttpRequest, web::Data};
 use cadence::{
     BufferedUdpMetricSink, Counted, CountedExt, Metric, NopMetricSink, QueuingMetricSink,
     StatsdClient, Timed,
@@ -25,26 +25,26 @@ pub struct Metrics {
 impl Drop for Metrics {
     fn drop(&mut self) {
         let tags = self.tags.clone().unwrap_or_default();
-        if let Some(client) = self.client.as_ref() {
-            if let Some(timer) = self.timer.as_ref() {
-                let lapse = (Instant::now() - timer.start).as_millis() as u64;
-                trace!("⌚ Ending timer at nanos: {:?} : {:?}", &timer.label, lapse; &tags);
-                let mut tagged = client.time_with_tags(&timer.label, lapse);
-                // Include any "hard coded" tags.
-                // tagged = tagged.with_tag("version", env!("CARGO_PKG_VERSION"));
-                let tags = timer.tags.tags.clone();
-                let keys = tags.keys();
-                for tag in keys {
-                    tagged = tagged.with_tag(tag, tags.get(tag).unwrap())
+        if let Some(client) = self.client.as_ref()
+            && let Some(timer) = self.timer.as_ref()
+        {
+            let lapse = (Instant::now() - timer.start).as_millis() as u64;
+            trace!("⌚ Ending timer at nanos: {:?} : {:?}", &timer.label, lapse; &tags);
+            let mut tagged = client.time_with_tags(&timer.label, lapse);
+            // Include any "hard coded" tags.
+            // tagged = tagged.with_tag("version", env!("CARGO_PKG_VERSION"));
+            let tags = timer.tags.tags.clone();
+            let keys = tags.keys();
+            for tag in keys {
+                tagged = tagged.with_tag(tag, tags.get(tag).unwrap())
+            }
+            match tagged.try_send() {
+                Err(e) => {
+                    // eat the metric, but log the error
+                    warn!("⚠️ Metric {} error: {:?} ", &timer.label, e);
                 }
-                match tagged.try_send() {
-                    Err(e) => {
-                        // eat the metric, but log the error
-                        warn!("⚠️ Metric {} error: {:?} ", &timer.label, e);
-                    }
-                    Ok(v) => {
-                        trace!("⌚ {:?}", v.as_metric_str());
-                    }
+                Ok(v) => {
+                    trace!("⌚ {:?}", v.as_metric_str());
                 }
             }
         }

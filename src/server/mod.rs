@@ -2,7 +2,7 @@
 use std::sync::Arc;
 
 use actix_cors::Cors;
-use actix_web::{dev, http::StatusCode, middleware::ErrorHandlers, web, App, HttpServer};
+use actix_web::{App, HttpServer, dev, http::StatusCode, middleware::ErrorHandlers, web};
 use cadence::StatsdClient;
 
 use crate::server::dockerflow::configure;

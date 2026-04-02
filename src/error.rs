@@ -1,8 +1,8 @@
 use std::{error::Error, fmt, result};
 
 use actix_web::{
-    dev::ServiceResponse, error::ResponseError, http::StatusCode, middleware::ErrorHandlerResponse,
-    HttpResponse, HttpResponseBuilder, Result,
+    HttpResponse, HttpResponseBuilder, Result, dev::ServiceResponse, error::ResponseError,
+    http::StatusCode, middleware::ErrorHandlerResponse,
 };
 use backtrace::Backtrace;
 use thiserror::Error;
